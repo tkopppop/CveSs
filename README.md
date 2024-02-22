@@ -1,7 +1,7 @@
 # cve_list
 cve_categorized
 
-* bussiness inquery:
+* bussiness in(out)queries:
   if you wanted to get my vulnerability research reports (subscription) ask to my official e-mail for x90cx90c1@gmail.com
 
 
