@@ -15,4 +15,5 @@ cve_categorized
 - CVE-2016-5195 DirtyCow
 - CVE-2009-2692 send_sockpage NULL Pointer Dereference
   
-total: 7
+total: 7 ( 62 )
+
